@@ -23,7 +23,15 @@ export default defineConfig([
       },
     },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // Ignora variables/funciones que:
+      // - Empiezan con mayúscula (Componentes React)
+      // - O empiezan con "use" (custom hooks)
+      'no-unused-vars': [
+        'error',
+        {
+          varsIgnorePattern: '^(use|[A-Z_])',
+        },
+      ],
     },
   },
 ])

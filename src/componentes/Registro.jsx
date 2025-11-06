@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/authContext";
 
-export default function Registro() {
+export default function Registro({ onRegistroExitoso }) {
     //cargar Auth
     const { register, loginWithGoogle } = useAuth();
 
@@ -18,6 +18,7 @@ export default function Registro() {
         try {
             await register(email, password); // Llama a createUserWithEmailAndPassword
             // Aquí podrías redirigir al dashboard o limpiar el formulario
+            if (onRegistroExitoso) onRegistroExitoso();
         } catch (err) {
             console.log(err);
             setError(traducirError(err.code));

@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/authContext";
 
-export default function Login() {
+export default function Login({ onLoginExitoso }) {
     //Cargar Auth
     const { login, resetPassword, loginWithGoogle } = useAuth();
     //Estados para manejo de formulario
@@ -21,6 +21,8 @@ export default function Login() {
         try {
             await login(email, password);
             // Aquí puedes navegar al dashboard
+            if (onLoginExitoso) onLoginExitoso();
+
         } catch (err) {
             console.error(err);
             setError(traducirError(err.code));
@@ -44,7 +46,32 @@ export default function Login() {
         }
     };
 
+    //Iniciar Sesion con Google
+    const handleGoogle = async () => {
+        setError("");
+        setMensaje("");
+        try {
+            await loginWithGoogle();
+        } catch (err) {
+            console.error(err);
+            setError(traducirError(err.code));
+        }
+    };
 
+    //Traducir Error
+    function traducirError(code) {
+        switch (code) {
+            case "auth/invalid-credential":
+            case "auth/wrong-password":
+                return "Correo o contraseña incorrectos.";
+            case "auth/user-not-found":
+                return "No existe una cuenta con este correo.";
+            case "auth/invalid-email":
+                return "El correo no es válido.";
+            default:
+                return "Ocurrió un error. Intenta nuevamente.";
+        }
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-slate-100">
