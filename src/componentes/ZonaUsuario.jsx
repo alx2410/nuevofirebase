@@ -1,3 +1,5 @@
+ZonaUsuario.jsx
+
 import { useAuth } from "../context/AuthContext";
 
 export function ZonaUsuario({ onAbrirLogin }){
@@ -11,7 +13,7 @@ export function ZonaUsuario({ onAbrirLogin }){
       <div className="flex items-center gap-3">
         <div className="flex flex-col items-end text-right leading-tight">
           <span className="text-sm text-white font-medium">
-            {user.displayName  || user.name}
+            {user.displayName || user.username}
           </span>
           <button
             onClick={logout}
@@ -23,7 +25,7 @@ export function ZonaUsuario({ onAbrirLogin }){
 
         {user.photoURL ? (
           <img
-            src={user.photoURL}
+            src={user.photoURL || user.avatar}
             alt="avatar"
             referrerPolicy="no-referrer"
             className="w-9 h-9 rounded-full border border-slate-300 object-cover"

@@ -1,7 +1,10 @@
 /* eslint-disable react-refresh/only-export-components */
 // src/context/authContext.jsx
+// 👇 Contexto de autenticación unificado: Auth + Firestore + Storage
+
 import { createContext, useContext, useEffect, useState } from "react";
-import { auth, googleProvider, db, storage } from "../lib/firebase"; // 🔹 CAMBIO: añadir storage
+import { auth, googleProvider, db, storage } from "../lib/firebase"; // 🔹 CAMBIO: asegurarse de importar db y storage
+
 import {
   onAuthStateChanged,
   signOut,
@@ -19,10 +22,10 @@ import {
 } from "firebase/firestore";
 
 import {
-  ref,              // 🔹 CAMBIO
-  uploadBytes,      // 🔹 CAMBIO
-  getDownloadURL,   // 🔹 CAMBIO
-} from "firebase/storage";
+  ref,
+  uploadBytes,
+  getDownloadURL,
+} from "firebase/storage"; // 🔹 CAMBIO: para subir avatar
 
 // 1. Creamos el contexto
 const AuthContext = createContext();
@@ -38,13 +41,45 @@ export function useAuth() {
 
 // 3. Componente proveedor
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);      // Usuario actual (Auth)
-  const [loading, setLoading] = useState(true); // Para saber si Firebase está verificando la sesión
+  const [user, setUser] = useState(null);     // 🔹 CAMBIO: aquí guardamos Auth + perfil
+  const [loading, setLoading] = useState(true);
+
+  // 🔹 CAMBIO: función que mezcla datos de Auth + Firestore en un solo objeto user
+  const cargarUsuarioCompleto = async (firebaseUser) => {
+    if (!firebaseUser) {
+      setUser(null);
+      return;
+    }
+
+    try {
+      const userRef = doc(db, "usuarios", firebaseUser.uid);
+      const snap = await getDoc(userRef);
+
+      if (snap.exists()) {
+        const profile = snap.data();
+        // Mezclamos todo en un solo objeto user
+        setUser({
+          ...firebaseUser,     // datos de Firebase Auth (uid, email, displayName, photoURL, etc.)
+          ...profile,          // datos de Firestore (username, avatar, provider, createdAt, etc.)
+        });
+      } else {
+        // Si no hay perfil en Firestore, usamos solo el user de Auth
+        setUser(firebaseUser);
+      }
+    } catch (error) {
+      console.error("Error al cargar usuario completo:", error);
+      setUser(firebaseUser); // al menos dejamos el user de Auth
+    }
+  };
 
   // Escuchamos cambios de sesión (login, logout, recarga de página, etc.)
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser || null);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        await cargarUsuarioCompleto(firebaseUser); // 🔹 CAMBIO
+      } else {
+        setUser(null);
+      }
       setLoading(false);
     });
 
@@ -56,23 +91,22 @@ export function AuthProvider({ children }) {
     email,
     password,
     {
-      username,      // 🔹 CAMBIO: viene desde el formulario
-      avatarFile,    // 🔹 CAMBIO: File de la imagen seleccionada
+      username,      // 🔹 CAMBIO: nombre de usuario que viene del formulario
+      avatarFile,    // 🔹 CAMBIO: archivo de imagen (File)
     }
   ) => {
     // 1. Crear usuario en Auth
     const cred = await createUserWithEmailAndPassword(auth, email, password);
-    const uid = cred.user.uid;
+    const firebaseUser = cred.user;
+    const uid = firebaseUser.uid;
 
     // 2. Subir avatar a Storage (si el usuario eligió archivo)
-    let avatarUrl = ""; // 🔹 CAMBIO: URL que guardaremos en Firestore
+    let avatarUrl = "";
 
-    if (avatarFile) { // 🔹 CAMBIO
-      // referencia: carpeta "usuario" en el bucket
-      const avatarRef = ref(
-        storage,
-        `usuario/${uid}-${avatarFile.name}` // ej: usuario/asdf1234-miFoto.png
-      );
+    if (avatarFile) {
+      // 🔹 CAMBIO: nombre único para no sobreescribir
+      const uniqueName = `${uid}-${Date.now()}-${avatarFile.name}`;
+      const avatarRef = ref(storage, `usuario/${uniqueName}`);
       await uploadBytes(avatarRef, avatarFile);       // subir archivo
       avatarUrl = await getDownloadURL(avatarRef);    // obtener URL pública
     }
@@ -83,22 +117,24 @@ export function AuthProvider({ children }) {
       uid,
       email,
       username,
-      avatar: avatarUrl,       // 🔹 CAMBIO: guardamos la URL del Storage
-      createdAt: serverTimestamp(),
-      provider: "password",
+      avatar: avatarUrl,
+      provider: "password",        // 🔹 CAMBIO: cómo se registró
+      createdAt: serverTimestamp()
     });
 
-    // 4. Actualizar estado local (opcional, igual lo hará onAuthStateChanged)
-    setUser(cred.user);
+    // 4. Mezclar y guardar todo en user del contexto
+    await cargarUsuarioCompleto(firebaseUser); // 🔹 CAMBIO
 
-    return cred.user;
+    return firebaseUser;
   };
 
   // 🟢 LOGIN con email/password
   const login = async (email, password) => {
     const cred = await signInWithEmailAndPassword(auth, email, password);
-    setUser(cred.user);
-    return cred.user;
+    const firebaseUser = cred.user;
+
+    await cargarUsuarioCompleto(firebaseUser); // 🔹 CAMBIO
+    return firebaseUser;
   };
 
   // 🟢 LOGIN con Google (y creación de perfil si no existe)
@@ -115,19 +151,20 @@ export function AuthProvider({ children }) {
         email: gUser.email,
         username: gUser.displayName || "",
         avatar: gUser.photoURL || "",
-        createdAt: serverTimestamp(),
         provider: "google",
+        createdAt: serverTimestamp(),
       });
     }
 
-    setUser(gUser);
+    await cargarUsuarioCompleto(gUser); // 🔹 CAMBIO
+
     return gUser;
   };
 
   // 🟢 LOGOUT
   const logout = async () => {
     await signOut(auth);
-    setUser(null);
+    setUser(null); // 🔹 CAMBIO: limpiamos el user mezclado
   };
 
   // 🟢 RESET PASSWORD
@@ -136,9 +173,9 @@ export function AuthProvider({ children }) {
   };
 
   const value = {
-    user,
+    user,            // 🔹 ESTE user ya tiene username y avatar (si existen en Firestore)
     loading,
-    register,       // 🔹 ya incluye username + avatarFile
+    register,
     login,
     logout,
     resetPassword,
