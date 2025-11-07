@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../context/authContext";
 
-export default function Registro({ onRegistroExitoso }) {
+export default function Registro({ onRegistroExitoso, onLoginExitoso, irALogin }) {
     //cargar Auth
     const { register, loginWithGoogle } = useAuth();
 
@@ -30,6 +30,7 @@ export default function Registro({ onRegistroExitoso }) {
         setError("");
         try {
             await loginWithGoogle();
+            if (onLoginExitoso) onLoginExitoso();
         } catch (err) {
             console.log(err);
             setError(traducirError(err.code));
@@ -51,7 +52,7 @@ export default function Registro({ onRegistroExitoso }) {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-100">
+        <div className="flex items-center justify-center bg-slate-100">
             <div className="w-full max-w-md bg-white shadow-lg rounded-xl p-6">
                 <h1 className="text-2xl font-bold mb-4 text-center">
                     Crear cuenta
@@ -94,9 +95,17 @@ export default function Registro({ onRegistroExitoso }) {
 
                     <button
                         type="submit"
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition"
+                        className="w-36 bg-blue-600 mr-3 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition"
                     >
                         Registrarse
+                    </button>
+
+                    <button
+                        type="submit"
+                        onClick={irALogin}
+                        className="w-36 bg-green-600 hover:bg-green-700 text-white font-medium py-2 rounded-lg transition"
+                    >
+                        Iniciar sesión
                     </button>
                 </form>
 

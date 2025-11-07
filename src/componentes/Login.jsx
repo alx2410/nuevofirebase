@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../context/authContext";
 
-export default function Login({ onLoginExitoso }) {
+export default function Login({ onLoginExitoso, irARegistro }) {
     //Cargar Auth
     const { login, resetPassword, loginWithGoogle } = useAuth();
     //Estados para manejo de formulario
@@ -52,6 +52,7 @@ export default function Login({ onLoginExitoso }) {
         setMensaje("");
         try {
             await loginWithGoogle();
+            onLoginExitoso();
         } catch (err) {
             console.error(err);
             setError(traducirError(err.code));
@@ -74,7 +75,7 @@ export default function Login({ onLoginExitoso }) {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-100">
+        <div className="flex items-center justify-center bg-slate-100">
             <div className="w-full max-w-md bg-white shadow-lg rounded-xl p-6">
                 <h1 className="text-2xl font-bold mb-4 text-center">
                     Iniciar sesión
@@ -123,9 +124,16 @@ export default function Login({ onLoginExitoso }) {
 
                     <button
                         type="submit"
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition"
+                        className="w-24 mr-3 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition"
                     >
                         Entrar
+                    </button>
+                    <button
+                        type="button"
+                        onClick={irARegistro}
+                        className=" w-24 bg-green-600 hover:bg-green-700 text-white font-medium py-2 rounded-lg transition"
+                    >
+                        Registrate
                     </button>
                 </form>
 
