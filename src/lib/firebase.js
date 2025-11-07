@@ -19,9 +19,9 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 //Inicializar servicio de FireStore
 export const db = getFirestore(app)
-//Inicializar servicio de Storage
+//Inicializar Storage
 export const storage = getStorage(app)
-//Inicializar servicio de Auth
+//Inicializar Auth
 export const auth = getAuth(app)
-//Provider para login con Google
+// Provider para login con Google (opcional)
 export const googleProvider = new GoogleAuthProvider();

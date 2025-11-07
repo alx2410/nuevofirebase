@@ -1,78 +1,91 @@
-import { createContext, useContext, useEffect, useState } from "react";
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext, useEffect, useState } from "react"
 import { auth, googleProvider } from "../lib/firebase";
-import { onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithPopup } from "firebase/auth";
+import {
+  onAuthStateChanged,
+  signOut,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  signInWithPopup,
+} from "firebase/auth";
 
-//Crear el contexto
+// 1. Creamos el contexto
 const AuthContext = createContext();
 
-// Hook para usar el contexto de autenticación
+// 2. Hook personalizado para usar el contexto
 export function useAuth() {
-    const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error("useAuth debe usarse dentro de un AuthProvider");
-    }
-    return context;
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth debe usarse dentro de un AuthProvider");
+  }
+  return context;
 }
 
-//Proveedor del contexto
+// 3. Componente proveedor
 export function AuthProvider({ children }) {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true); // Estado de carga
+  const [user, setUser] = useState(null);     // Usuario actual
+  const [loading, setLoading] = useState(true); // Para saber si Firebase está verificando la sesión
 
-    // Escuchar los cambios en el estado de autenticación
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            setUser(currentUser || null);
-            setLoading(false); // Finalizar el estado de carga
-        });
-        // Limpiar el suscriptor al desmontar el componente
-        return () => unsubscribe();
-    }, []);
+  // Escuchamos cambios de sesión (login, logout, recarga de página, etc.)
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser || null);
+      setLoading(false);
+    });
 
-    // Funciones de autenticación
-    //Registrar usuario con email y password
-    const register = (email, password) => {
-        return createUserWithEmailAndPassword(auth, email, password);
-    };
-    //Iniciar sesión con email y password
-    const login = (email, password) => {
-        return signInWithEmailAndPassword(auth, email, password);
-    };
-    //Iniciar sesión con Google
-    const loginWithGoogle = () => {
-        return signInWithPopup(auth, googleProvider);
-    };
-    //Enviar email para restablecer la contraseña
-    const resetPassword = (email) => {
-        return sendPasswordResetEmail(auth, email);
-    };
-    //Cerrar sesión
-    const logout = () => {
-        return signOut(auth);
-    };
+    // Importante: limpiar el listener
+    return () => unsubscribe();
+  }, []);
 
-    //Valor del contexto
-    const value = {
-        user,
-        register,
-        login,
-        loginWithGoogle,
-        resetPassword,
-        logout,
-    };
+  // --- Funciones de ayuda (para usar en los componentes) ---
 
-    return (
-        <AuthContext.Provider value={value}>
-            {/*Mientras firebase verifica sesion, puedo mostrar un cargando*/}
-            {loading ?
-                (
-                <div>
-                    <p>Cargando...</p>
-                </div>
-                ) : (
-                children)
-            }
-        </AuthContext.Provider>
-    );
+  // Registro con email/contraseña
+  const register = (email, password) =>
+    createUserWithEmailAndPassword(auth, email, password);
+
+  // Login con email/contraseña
+  const login = (email, password) =>
+    signInWithEmailAndPassword(auth, email, password);
+
+  // Login con Google
+  const loginWithGoogle = () => signInWithPopup(auth, googleProvider);
+
+  // Enviar correo de reset de contraseña
+  const resetPassword = (email) => sendPasswordResetEmail(auth, email);
+
+  // Cerrar sesión
+  const logout = () => signOut(auth);
+
+  //Empaquetar todas las funciones
+  const value = {
+    user,
+    loading,
+    register,
+    login,
+    loginWithGoogle,
+    resetPassword,
+    logout,
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {/* Mientras Firebase verifica sesión, puedes mostrar un loader */}
+      {loading ? (
+        <div className="min-h-screen flex items-center justify-center bg-gray-100">
+          <p className="text-gray-600 font-medium">Cargando sesión...</p>
+        </div>
+      ) : (
+        children
+      )}
+    </AuthContext.Provider>
+  );
 }
+
+
+
+
+
+
+
 

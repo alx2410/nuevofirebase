@@ -10,15 +10,14 @@ import Registro from "./componentes/Registro";
 import { useState } from "react";
 
 function App() {
-
-  // 🔹 Un modal para Login
+  //Variables para Manejar el Modal Login y Registro
   const [loginModalAbierto, setLoginModalAbierto] = useState(false);
-  // 🔹 Otro modal para Registro
   const [registroModalAbierto, setRegistroModalAbierto] = useState(false);
 
+  //Funciones para Manejar los MOdales
   // --- Abrir / cerrar Login ---
   const abrirLogin = () => {
-    setRegistroModalAbierto(false); // por si acaso
+    setRegistroModalAbierto(false);
     setLoginModalAbierto(true);
   };
 
@@ -28,7 +27,7 @@ function App() {
 
   // --- Abrir / cerrar Registro ---
   const abrirRegistro = () => {
-    setLoginModalAbierto(false); // por si acaso
+    setLoginModalAbierto(false);
     setRegistroModalAbierto(true);
   };
 
@@ -38,20 +37,19 @@ function App() {
 
   // --- Callbacks de éxito ---
   const manejarLoginExitoso = () => {
-    // después de loguearse → cerramos el modal de login
     setLoginModalAbierto(false);
   };
 
   const manejarRegistroExitoso = () => {
-    // después de registrarse → cerramos registro y abrimos login
+    // Después de registrarse → cerramos registro y abrimos login
     setRegistroModalAbierto(false);
     setLoginModalAbierto(true);
   };
 
-
   return (
     <>
-      <Navbar />
+
+      <Navbar onAbrirLogin={abrirLogin} />
 
       <Routes>
         <Route path="/" element={<Inicio />} />
@@ -60,49 +58,34 @@ function App() {
         <Route path="/productos" element={<Productos />} />
       </Routes>
 
+      {/* 🔹 Modal de REGISTRO */}
+      {registroModalAbierto && (
+        <Modal onClose={cerrarRegistro}>
+          <Registro
+            onRegistroExitoso={manejarRegistroExitoso}
+            irALogin={() => {
+              cerrarRegistro();
+              abrirLogin();
+            }}
+          />
+        </Modal>
+      )}
 
-
-
-      <div className="min-h-screen bg-slate-100 flex flex-col">
-       
-
-        {/* 🔹 Modal de LOGIN */}
-        {loginModalAbierto && (
-          <Modal onClose={cerrarLogin}>
-            <Login
-              onLoginExitoso={manejarLoginExitoso}
-              // desde login, si no tiene cuenta → abrimos registro
-              irARegistro={() => {
-                cerrarLogin();
-                abrirRegistro();
-              }}
-            />
-          </Modal>
-        )}
-
-        {/* 🔹 Modal de REGISTRO */}
-        {registroModalAbierto && (
-          <Modal onClose={cerrarRegistro}>
-            <Registro
-              onRegistroExitoso={manejarRegistroExitoso}
-              // desde registro, si ya tiene cuenta → volvemos a login
-              irALogin={() => {
-                cerrarRegistro();
-                abrirLogin();
-              }}
-            />
-          </Modal>
-        )}
-      </div>
+      {/* 🔹 Modal de LOGIN */}
+      {loginModalAbierto && (
+        <Modal onClose={cerrarLogin}>
+          <Login
+            onLoginExitoso={manejarLoginExitoso}
+            irARegistro={() => {
+              cerrarLogin();
+              abrirRegistro();
+            }}
+          />
+        </Modal>
+      )}
 
 
     </>
-
-
-
-
-
-
   );
 }
 
