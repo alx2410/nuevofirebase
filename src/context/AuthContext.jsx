@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useState } from "react"
-import { auth, googleProvider } from "../lib/firebase";
+// src/context/authContext.jsx
+import { createContext, useContext, useEffect, useState } from "react";
+import { auth, googleProvider, db, storage } from "../lib/firebase"; // 🔹 CAMBIO: añadir storage
 import {
   onAuthStateChanged,
   signOut,
@@ -9,6 +10,19 @@ import {
   sendPasswordResetEmail,
   signInWithPopup,
 } from "firebase/auth";
+
+import {
+  doc,
+  setDoc,
+  getDoc,
+  serverTimestamp,
+} from "firebase/firestore";
+
+import {
+  ref,              // 🔹 CAMBIO
+  uploadBytes,      // 🔹 CAMBIO
+  getDownloadURL,   // 🔹 CAMBIO
+} from "firebase/storage";
 
 // 1. Creamos el contexto
 const AuthContext = createContext();
@@ -24,7 +38,7 @@ export function useAuth() {
 
 // 3. Componente proveedor
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);     // Usuario actual
+  const [user, setUser] = useState(null);      // Usuario actual (Auth)
   const [loading, setLoading] = useState(true); // Para saber si Firebase está verificando la sesión
 
   // Escuchamos cambios de sesión (login, logout, recarga de página, etc.)
@@ -34,58 +48,106 @@ export function AuthProvider({ children }) {
       setLoading(false);
     });
 
-    // Importante: limpiar el listener
     return () => unsubscribe();
   }, []);
 
-  // --- Funciones de ayuda (para usar en los componentes) ---
+  // 🟢 REGISTRO con email/password + avatar en Storage + perfil en Firestore
+  const register = async (
+    email,
+    password,
+    {
+      username,      // 🔹 CAMBIO: viene desde el formulario
+      avatarFile,    // 🔹 CAMBIO: File de la imagen seleccionada
+    }
+  ) => {
+    // 1. Crear usuario en Auth
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    const uid = cred.user.uid;
 
-  // Registro con email/contraseña
-  const register = (email, password) =>
-    createUserWithEmailAndPassword(auth, email, password);
+    // 2. Subir avatar a Storage (si el usuario eligió archivo)
+    let avatarUrl = ""; // 🔹 CAMBIO: URL que guardaremos en Firestore
 
-  // Login con email/contraseña
-  const login = (email, password) =>
-    signInWithEmailAndPassword(auth, email, password);
+    if (avatarFile) { // 🔹 CAMBIO
+      // referencia: carpeta "usuario" en el bucket
+      const avatarRef = ref(
+        storage,
+        `usuario/${uid}-${avatarFile.name}` // ej: usuario/asdf1234-miFoto.png
+      );
+      await uploadBytes(avatarRef, avatarFile);       // subir archivo
+      avatarUrl = await getDownloadURL(avatarRef);    // obtener URL pública
+    }
 
-  // Login con Google
-  const loginWithGoogle = () => signInWithPopup(auth, googleProvider);
+    // 3. Crear documento de perfil en Firestore
+    const userRef = doc(db, "usuarios", uid);
+    await setDoc(userRef, {
+      uid,
+      email,
+      username,
+      avatar: avatarUrl,       // 🔹 CAMBIO: guardamos la URL del Storage
+      createdAt: serverTimestamp(),
+      provider: "password",
+    });
 
-  // Enviar correo de reset de contraseña
-  const resetPassword = (email) => sendPasswordResetEmail(auth, email);
+    // 4. Actualizar estado local (opcional, igual lo hará onAuthStateChanged)
+    setUser(cred.user);
 
-  // Cerrar sesión
-  const logout = () => signOut(auth);
+    return cred.user;
+  };
 
-  //Empaquetar todas las funciones
+  // 🟢 LOGIN con email/password
+  const login = async (email, password) => {
+    const cred = await signInWithEmailAndPassword(auth, email, password);
+    setUser(cred.user);
+    return cred.user;
+  };
+
+  // 🟢 LOGIN con Google (y creación de perfil si no existe)
+  const loginWithGoogle = async () => {
+    const result = await signInWithPopup(auth, googleProvider);
+    const gUser = result.user;
+
+    const userRef = doc(db, "usuarios", gUser.uid);
+    const snap = await getDoc(userRef);
+
+    if (!snap.exists()) {
+      await setDoc(userRef, {
+        uid: gUser.uid,
+        email: gUser.email,
+        username: gUser.displayName || "",
+        avatar: gUser.photoURL || "",
+        createdAt: serverTimestamp(),
+        provider: "google",
+      });
+    }
+
+    setUser(gUser);
+    return gUser;
+  };
+
+  // 🟢 LOGOUT
+  const logout = async () => {
+    await signOut(auth);
+    setUser(null);
+  };
+
+  // 🟢 RESET PASSWORD
+  const resetPassword = async (email) => {
+    await sendPasswordResetEmail(auth, email);
+  };
+
   const value = {
     user,
     loading,
-    register,
+    register,       // 🔹 ya incluye username + avatarFile
     login,
-    loginWithGoogle,
-    resetPassword,
     logout,
+    resetPassword,
+    loginWithGoogle,
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {/* Mientras Firebase verifica sesión, puedes mostrar un loader */}
-      {loading ? (
-        <div className="min-h-screen flex items-center justify-center bg-gray-100">
-          <p className="text-gray-600 font-medium">Cargando sesión...</p>
-        </div>
-      ) : (
-        children
-      )}
+      {!loading && children}
     </AuthContext.Provider>
   );
 }
-
-
-
-
-
-
-
-

@@ -1,4 +1,4 @@
-import { useAuth } from "../context/authContext";
+import { useAuth } from "../context/AuthContext";
 
 export function ZonaUsuario({ onAbrirLogin }){
  //Variable para cargar la utenticacion
@@ -11,7 +11,7 @@ export function ZonaUsuario({ onAbrirLogin }){
       <div className="flex items-center gap-3">
         <div className="flex flex-col items-end text-right leading-tight">
           <span className="text-sm text-white font-medium">
-            {user.displayName || user.email}
+            {user.displayName  || user.name}
           </span>
           <button
             onClick={logout}
