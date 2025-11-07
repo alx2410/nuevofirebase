@@ -1,8 +1,14 @@
-export function Productos(){
+import React from 'react'
+import { FormProducto } from '../componentes/FormProducto'
+import { ListProducto } from '../componentes/ListProducto'
 
-    return(
+export function Productos() {
+
+    return (
         <div>
-            <h1>Productos</h1>
+            <h1>Gestión de Productos</h1>
+            <FormProducto />
+            <ListProducto />
         </div>
     )
 }
