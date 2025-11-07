@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../context/authContext";
 
 export default function Registro({ onRegistroExitoso, onLoginExitoso, irALogin }) {
@@ -9,6 +9,18 @@ export default function Registro({ onRegistroExitoso, onLoginExitoso, irALogin }
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+
+    // 👉 Referencia al input de correo
+    const emailRef = useRef(null);
+
+    // 👉 Enfocar el input cuando se monta el componente (cuando se abre el modal)
+    useEffect(() => {
+        if (emailRef.current) {
+            emailRef.current.focus();
+            // Opcional: seleccionar el texto si ya había algo escrito
+            // emailRef.current.select();
+        }
+    }, []);
 
     //Crea usuario con email and password
     const handleSubmit = async (e) => {
@@ -70,12 +82,14 @@ export default function Registro({ onRegistroExitoso, onLoginExitoso, irALogin }
                             Correo electrónico
                         </label>
                         <input
+                            ref={emailRef}
                             type="email"
                             className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="tucorreo@ejemplo.com"
                             required
+                            autoComplete="off"
                         />
                     </div>
 
@@ -90,6 +104,7 @@ export default function Registro({ onRegistroExitoso, onLoginExitoso, irALogin }
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Mínimo 6 caracteres"
                             required
+                            autoComplete="new-password"
                         />
                     </div>
 

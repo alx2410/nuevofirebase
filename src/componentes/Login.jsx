@@ -1,18 +1,31 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/authContext";
 
 export default function Login({ onLoginExitoso, irARegistro }) {
-    //Cargar Auth
+    // Cargar Auth
     const { login, resetPassword, loginWithGoogle } = useAuth();
-    //Estados para manejo de formulario
+
+    // Estados para manejo de formulario
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
-    //Estados para el manejo mensajes de errores
+    // Estados para el manejo mensajes de errores
     const [mensaje, setMensaje] = useState("");
     const [error, setError] = useState("");
 
-    //hace el logueo con correo y contraseña
+    // 👉 Referencia al input de correo
+    const emailRef = useRef(null);
+
+    // 👉 Enfocar el input cuando se monta el componente (cuando se abre el modal)
+    useEffect(() => {
+        if (emailRef.current) {
+            emailRef.current.focus();
+            // Opcional: seleccionar el texto si ya había algo escrito
+            // emailRef.current.select();
+        }
+    }, []);
+
+    // hace el logueo con correo y contraseña
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
@@ -29,7 +42,7 @@ export default function Login({ onLoginExitoso, irARegistro }) {
         }
     };
 
-    //Resetear Contraseña
+    // Resetear Contraseña
     const handleReset = async () => {
         setError("");
         setMensaje("");
@@ -46,7 +59,7 @@ export default function Login({ onLoginExitoso, irARegistro }) {
         }
     };
 
-    //Iniciar Sesion con Google
+    // Iniciar Sesion con Google
     const handleGoogle = async () => {
         setError("");
         setMensaje("");
@@ -59,7 +72,7 @@ export default function Login({ onLoginExitoso, irARegistro }) {
         }
     };
 
-    //Traducir Error
+    // Traducir Error
     function traducirError(code) {
         switch (code) {
             case "auth/invalid-credential":
@@ -99,12 +112,14 @@ export default function Login({ onLoginExitoso, irARegistro }) {
                             Correo electrónico
                         </label>
                         <input
+                            ref={emailRef} // 👈 Aquí ponemos la referencia
                             type="email"
                             className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="tucorreo@ejemplo.com"
                             required
+                            autoComplete="off"
                         />
                     </div>
 
@@ -119,6 +134,7 @@ export default function Login({ onLoginExitoso, irARegistro }) {
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Tu contraseña"
                             required
+                            autoComplete="new-password"
                         />
                     </div>
 
@@ -156,5 +172,5 @@ export default function Login({ onLoginExitoso, irARegistro }) {
                 </div>
             </div>
         </div>
-    )
+    );
 }
